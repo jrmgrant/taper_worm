@@ -15,21 +15,29 @@ const meds = [
 const moodOptions = ['Happy', 'Sad', 'Depressed', 'Anxious', 'Lonely', 'Neutral'];
 
 function App() {
-  const [session, setSession] = useState(null);
+  const [session, setSession] = useState(undefined);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) =>
-      setSession(session)
-    );
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
 
-    return () => listener.subscription.unsubscribe();
+    return () => subscription.unsubscribe();
   }, []);
 
-  if (!session) return <Login />;
+  if (session === undefined) {
+    return <div className="text-center mt-10">Loading...</div>;
+  }
+
+  if (!session) {
+    return <Login />;
+  }
 
   return <TaperTracker session={session} />;
 }
@@ -57,15 +65,103 @@ function TaperTracker({ session }) {
     }));
   };
 
-  // 🧠 Make sure to use session.user.id for saving entries later
+  const handleSave = async () => {
+    const { data, error } = await supabase.from('daily_logs').insert([
+      {
+        user_id: session.user.id,
+        date: log.date,
+        clonazepam_am: log.medsTaken['Clonazepam AM'] ? '0.5 mg' : '',
+        clonazepam_pm: log.medsTaken['Clonazepam PM'] ? '0.5 mg' : '',
+        suboxone: log.medsTaken['Suboxone'] ? '6 mg' : '',
+        bupropion: log.medsTaken['Bupropion'] ? '150 mg' : '',
+        sertraline: log.medsTaken['Sertraline'] ? '100 mg' : '',
+        dextroamphetamine: log.medsTaken['Dextroamphetamine'] ? '10 mg' : '',
+        zopiclone: log.medsTaken['Zopiclone'] ? '5 mg' : '',
+        sleep_score: Number(log.sleep),
+        energy_score: Number(log.energy),
+        appetite_score: Number(log.appetite),
+        mood: log.mood,
+        notes: log.notes,
+      },
+    ]);
+
+    if (error) {
+      alert('❌ Error saving entry: ' + error.message);
+    } else {
+      alert('✅ Entry saved!');
+    }
+  };
 
   return (
-    <>
-      <h1 className="text-2xl font-bold text-center mb-4">
-        Welcome, {session.user.email}
-      </h1>
-      {/* Your taper tracker UI continues here... */}
-    </>
+    <div className="max-w-xl mx-auto mt-10 p-4">
+      <h1 className="text-2xl font-bold text-center mb-4">Taper Tracker – {today}</h1>
+      <p className="text-center mb-6 text-sm">Logged in as {session.user.email}</p>
+
+      {meds.map((med) => (
+        <div key={med.name} className="flex justify-between py-1">
+          <label>{med.name} ({med.dose})</label>
+          <input
+            type="checkbox"
+            checked={!!log.medsTaken[med.name]}
+            onChange={() => toggleMed(med.name)}
+          />
+        </div>
+      ))}
+
+      <div className="mt-4">
+        <label>Sleep (1–10):</label>
+        <input
+          type="number"
+          value={log.sleep}
+          onChange={(e) => setLog({ ...log, sleep: e.target.value })}
+          className="w-full border p-1 mb-2"
+        />
+
+        <label>Energy (1–10):</label>
+        <input
+          type="number"
+          value={log.energy}
+          onChange={(e) => setLog({ ...log, energy: e.target.value })}
+          className="w-full border p-1 mb-2"
+        />
+
+        <label>Appetite (1–10):</label>
+        <input
+          type="number"
+          value={log.appetite}
+          onChange={(e) => setLog({ ...log, appetite: e.target.value })}
+          className="w-full border p-1 mb-2"
+        />
+
+        <label>Mood:</label>
+        <select
+          value={log.mood}
+          onChange={(e) => setLog({ ...log, mood: e.target.value })}
+          className="w-full border p-1 mb-2"
+        >
+          <option value="">Select Mood</option>
+          {moodOptions.map((m) => (
+            <option key={m} value={m}>
+              {m}
+            </option>
+          ))}
+        </select>
+
+        <label>Notes:</label>
+        <textarea
+          value={log.notes}
+          onChange={(e) => setLog({ ...log, notes: e.target.value })}
+          className="w-full border p-2 mb-4"
+        />
+
+        <button
+          onClick={handleSave}
+          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+        >
+          Save Entry
+        </button>
+      </div>
+    </div>
   );
 }
 
