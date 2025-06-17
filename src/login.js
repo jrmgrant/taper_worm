@@ -1,5 +1,5 @@
 // src/Login.js
-import { Auth, ThemeSupa } from '@supabase/auth-ui-react';
+import { Auth } from '@supabase/auth-ui-react';
 import { supabase } from './supabaseClient';
 
 export default function Login() {
@@ -9,9 +9,7 @@ export default function Login() {
         <h2 className="text-xl font-bold mb-4 text-center">Log in to Taper Tracker</h2>
         <Auth
           supabaseClient={supabase}
-          appearance={{ theme: ThemeSupa }}
           providers={[]}
-          theme="default"
         />
       </div>
     </div>
