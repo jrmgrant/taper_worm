@@ -1,6 +1,5 @@
 // src/Login.js
-import { Auth } from '@supabase/auth-ui-react';
-import { ThemeSupa } from '@supabase/auth-ui-shared';
+import { Auth, ThemeSupa } from '@supabase/auth-ui-react';
 import { supabase } from './supabaseClient';
 
 export default function Login() {
